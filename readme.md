@@ -16,3 +16,5 @@ look into Kotlin Flow for a lazy sequence that can be cancelled
 ### gradle tasks
 1. run
 2. deployment? (link)[https://github.com/JetBrains/compose-jb/tree/master/tutorials/Native_distributions_and_local_execution]
+running gradle package works, creates installer for windows at least in: 
+.\build\compose\binaries\main\msi
