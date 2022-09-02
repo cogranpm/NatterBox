@@ -9,7 +9,9 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.parinherm.audio.AudioRecognizer
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import java.nio.file.Paths
 
@@ -47,10 +49,16 @@ fun main() = application {
     val recognizer = AudioRecognizer()
     val recognizerScope = MainScope()
     val job = recognizerScope.launch(newSingleThreadContext("recognizer-loop")) {
-        recognizer.run().onEach { value: String ->
+        recognizer.run().cancellable().onEach { value: String ->
             println("we got one: $value")
         }.catch { e -> println("Caught $e")  }.collect {}
     }
+
+    /*
+    val job = recognizer.run().onEach { value: String ->
+        println("we got one: $value")
+    }.catch { e -> println("Caught $e")  }.launchIn(recognizerScope)
+     */
 
     Window(onCloseRequest = {
         shutDown(this, job, recognizerScope)
