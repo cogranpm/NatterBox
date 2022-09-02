@@ -36,24 +36,16 @@ class AudioRecognizer {
                     speakers.open(format)
                     speakers.start()
 
-
-                    //captureSpeech(microphone, recognizer, speakers)
-                    //System.out.println(recognizer.finalResult)
-
                     val out = ByteArrayOutputStream()
                     var numBytesRead: Int
                     val CHUNK_SIZE = 1024
 
                     val b = ByteArray(4096)
                     while (true) {
-                        //yield()
-
                         numBytesRead = microphone.read(b, 0, CHUNK_SIZE)
                         out.write(b, 0, numBytesRead)
-
                         //this plays back what is read, useful for caching the audio for writing to file
-                        //speakers.write(b, 0, numBytesRead)
-
+                        speakers.write(b, 0, numBytesRead)
                         if (recognizer.acceptWaveForm(b, numBytesRead)) {
                             //System.out.println(recognizer.result)
                             emit(recognizer.result)
