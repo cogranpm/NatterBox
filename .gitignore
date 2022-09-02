@@ -54,3 +54,5 @@ bin/
 /gradlew.bat
 /gradle.properties
 /settings.gradle.kts
+
+model-small
