@@ -4,6 +4,7 @@ import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.parinherm.audio.AudioRecognizer
@@ -43,19 +44,23 @@ fun main() = application {
     val recognizer = AudioRecognizer()
     val recognizerScope = MainScope()
     val job = recognizerScope.launch(newSingleThreadContext("recognizer-loop")) {
-        while (isActive) {
-            recognizer.runSpeechCapture()
-        }
+        //recognizer.runSpeechCapture()
+        recognizer.run().collect{value: String -> println("we got one: $value")}
     }
 
     Window(onCloseRequest = {
-        ::exitApplication
-        MainScope().launch {
-            job.cancel()
-            job.join()
-            recognizerScope.cancel()
-        }
+        shutDown(this, job)
     }) {
         App(job, recognizerScope)
+    }
+}
+
+fun shutDown(app: ApplicationScope, job: Job){
+    app.exitApplication()
+    //::exitApplication
+    MainScope().launch {
+        job.cancel()
+        job.join()
+        //recognizerScope.cancel()
     }
 }
