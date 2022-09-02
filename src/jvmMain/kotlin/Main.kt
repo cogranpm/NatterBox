@@ -10,7 +10,6 @@ import com.parinherm.audio.AudioRecognizer
 import kotlinx.coroutines.*
 
 
-
 @Composable
 @Preview
 fun App(job: Job, recognizerScope: CoroutineScope) {
@@ -27,9 +26,12 @@ fun App(job: Job, recognizerScope: CoroutineScope) {
                 recognizer.runSpeechCapture()
             }
              */
-           text = "Hello, Desktop!"
-            job.cancel()
-            recognizerScope.cancel()
+            text = "Hello, Desktop!"
+            MainScope().launch {
+                job.cancel()
+                job.join()
+                recognizerScope.cancel()
+            }
         }) {
             Text(text)
         }
@@ -40,17 +42,20 @@ fun main() = application {
 
     val recognizer = AudioRecognizer()
     val recognizerScope = MainScope()
-    val job = recognizerScope.launch(Dispatchers.IO){
-        while(isActive){
+    val job = recognizerScope.launch(newSingleThreadContext("recognizer-loop")) {
+        while (isActive) {
             recognizer.runSpeechCapture()
         }
     }
 
     Window(onCloseRequest = {
-        job.cancel()
-        recognizerScope.cancel()
         ::exitApplication
+        MainScope().launch {
+            job.cancel()
+            job.join()
+            recognizerScope.cancel()
+        }
     }) {
         App(job, recognizerScope)
     }
-    }
+}
