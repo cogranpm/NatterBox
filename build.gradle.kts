@@ -29,6 +29,8 @@ kotlin {
                 implementation(compose.desktop.currentOs);
                 implementation("net.java.dev.jna:jna:5.7.0");
                 implementation("com.alphacephei:vosk:0.3.38");
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4");
+                runtimeOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4");
             }
         }
         val jvmTest by getting

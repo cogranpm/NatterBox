@@ -3,25 +3,33 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.material.Button
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.parinherm.audio.AudioRecognizer
+import kotlinx.coroutines.*
+
+
 
 @Composable
 @Preview
-fun App() {
+fun App(job: Job, recognizerScope: CoroutineScope) {
     var text by remember { mutableStateOf("Hello, World!") }
 
     MaterialTheme {
         Button(onClick = {
-            val recognizer = AudioRecognizer()
-            recognizer.runCapture()
-            text = "Hello, Desktop!"
+            /*
+            LaunchedEffect(key1 = Unit, block = {
+                recognizer.runSpeechCapture()
+            })
+            val coroutineScope = rememberCoroutineScope()
+            val job = coroutineScope.launch {
+                recognizer.runSpeechCapture()
+            }
+             */
+           text = "Hello, Desktop!"
+            job.cancel()
+            recognizerScope.cancel()
         }) {
             Text(text)
         }
@@ -29,7 +37,20 @@ fun App() {
 }
 
 fun main() = application {
-    Window(onCloseRequest = ::exitApplication) {
-        App()
+
+    val recognizer = AudioRecognizer()
+    val recognizerScope = MainScope()
+    val job = recognizerScope.launch(Dispatchers.IO){
+        while(isActive){
+            recognizer.runSpeechCapture()
+        }
     }
-}
+
+    Window(onCloseRequest = {
+        job.cancel()
+        recognizerScope.cancel()
+        ::exitApplication
+    }) {
+        App(job, recognizerScope)
+    }
+    }

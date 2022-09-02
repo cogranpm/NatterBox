@@ -1,5 +1,7 @@
 package com.parinherm.audio
 
+import kotlinx.coroutines.*
+import kotlinx.coroutines.NonCancellable.isActive
 import org.vosk.LibVosk
 import org.vosk.LogLevel
 import org.vosk.Model
@@ -9,13 +11,13 @@ import java.io.ByteArrayOutputStream
 import java.io.FileInputStream
 import javax.sound.sampled.*
 
-
 class AudioRecognizer {
 
     init {
         LibVosk.setLogLevel(LogLevel.DEBUG)
     }
 
+    /*
     fun run(){
 
         Model("D:\\shared\\Source\\kotlin\\resources\\vosk-model-small").use { model ->
@@ -37,47 +39,66 @@ class AudioRecognizer {
                 }
         }
     }
+     */
 
-    fun runCapture() {
-        val format = AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 60000f, 16, 2, 4, 44100f, false)
-        val info = DataLine.Info(TargetDataLine::class.java, format)
+
+    suspend fun runSpeechCapture() {
         var microphone: TargetDataLine
         var speakers: SourceDataLine
+        val format = AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 60000f, 16, 2, 4, 44100f, false)
+        val info = DataLine.Info(TargetDataLine::class.java, format)
+        val dataLineInfo: DataLine.Info = DataLine.Info(SourceDataLine::class.java, format)
+        speakers = AudioSystem.getLine(dataLineInfo) as SourceDataLine
+        microphone = AudioSystem.getLine(info) as TargetDataLine
 
-        Model("D:\\shared\\Source\\kotlin\\resources\\vosk-model-small").use { model ->
+        try {
 
-            Recognizer(model, 120000f).use { recognizer ->
-                microphone = AudioSystem.getLine(info) as TargetDataLine
-                microphone.open(format)
-                microphone.start()
+            Model("D:\\shared\\Source\\kotlin\\resources\\vosk-model-small").use { model ->
 
-                val out = ByteArrayOutputStream()
-                var numBytesRead: Int
-                val CHUNK_SIZE = 1024
-                var bytesRead = 0
+                Recognizer(model, 120000f).use { recognizer ->
+                    microphone.open(format)
+                    microphone.start()
+                    speakers.open(format)
+                    speakers.start()
+                    captureSpeech(microphone, recognizer, speakers)
+                    System.out.println(recognizer.finalResult)
 
-                val dataLineInfo: DataLine.Info = DataLine.Info(SourceDataLine::class.java, format)
-                speakers = AudioSystem.getLine(dataLineInfo) as SourceDataLine
-                speakers.open(format)
-                speakers.start()
-                val b = ByteArray(4096)
-
-                while (bytesRead <= 100000000) {
-                    numBytesRead = microphone.read(b, 0, CHUNK_SIZE)
-                    bytesRead += numBytesRead
-                    out.write(b, 0, numBytesRead)
-                    speakers.write(b, 0, numBytesRead)
-                    if (recognizer.acceptWaveForm(b, numBytesRead)) {
-                        System.out.println(recognizer.result)
-                    } else {
-                        System.out.println(recognizer.partialResult)
-                    }
                 }
-                System.out.println(recognizer.finalResult)
-                speakers.drain()
-                speakers.close()
-                microphone.close()
             }
+        } catch (e: Exception) {
+            println("we have stopped listening")
+        } finally {
+            println("cleaning up")
+            speakers.drain()
+            speakers.close()
+            microphone.close()
         }
     }
+
+    suspend fun captureSpeech(microphone: TargetDataLine, recognizer: Recognizer, speakers: SourceDataLine) {
+        val out = ByteArrayOutputStream()
+        var numBytesRead: Int
+        val CHUNK_SIZE = 1024
+        var bytesRead = 0
+
+        val b = ByteArray(4096)
+        val maxBytes = 100000000
+        while (true) {
+            yield()
+            numBytesRead = microphone.read(b, 0, CHUNK_SIZE)
+            bytesRead += numBytesRead
+            out.write(b, 0, numBytesRead)
+
+            //this plays back what is read, useful for caching the audio for writing to file
+            //speakers.write(b, 0, numBytesRead)
+            if (recognizer.acceptWaveForm(b, numBytesRead)) {
+                System.out.println(recognizer.result)
+            } else {
+                //System.out.println(recognizer.partialResult)
+            }
+        }
+
+    }
+
+
 }
